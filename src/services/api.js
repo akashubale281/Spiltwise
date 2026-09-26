@@ -2,11 +2,16 @@
 const getApiEndpoints = (endpoint) => {
   const isBrowser = typeof window !== 'undefined';
 
-  // If external backend URL is configured (e.g. on Render: https://splitverse-api.onrender.com)
+  // If external backend URL is configured (e.g. on Render)
   const envApiUrl = import.meta.env.VITE_API_URL;
   if (envApiUrl && envApiUrl.trim()) {
     const cleanBase = envApiUrl.trim().replace(/\/+$/, '');
     return [`${cleanBase}/api${endpoint}`];
+  }
+
+  // Automatic Render production backend fallback when hosted on Vercel
+  if (isBrowser && window.location.hostname && window.location.hostname.includes('vercel.app')) {
+    return [`https://spiltwise1-backend.onrender.com/api${endpoint}`];
   }
 
   const hostname = isBrowser && window.location.hostname ? window.location.hostname : 'localhost';
