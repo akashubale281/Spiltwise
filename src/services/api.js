@@ -1,6 +1,14 @@
 // Base API path with automatic fallback
 const getApiEndpoints = (endpoint) => {
   const isBrowser = typeof window !== 'undefined';
+
+  // If external backend URL is configured (e.g. on Render: https://splitverse-api.onrender.com)
+  const envApiUrl = import.meta.env.VITE_API_URL;
+  if (envApiUrl && envApiUrl.trim()) {
+    const cleanBase = envApiUrl.trim().replace(/\/+$/, '');
+    return [`${cleanBase}/api${endpoint}`];
+  }
+
   const hostname = isBrowser && window.location.hostname ? window.location.hostname : 'localhost';
   const currentPort = isBrowser && window.location.port ? window.location.port : '';
 
