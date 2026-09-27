@@ -151,7 +151,18 @@ function MainApp() {
   const [autoRulesOpen, setAutoRulesOpen] = useState(false);
   const [aiKeyModalOpen, setAiKeyModalOpen] = useState(false);
 
-  const openExpenseModal = (groupId = '', expenseData = null) => {
+  const openExpenseModal = (arg1 = '', arg2 = null) => {
+    let groupId = '';
+    let expenseData = null;
+
+    if (arg1 && typeof arg1 === 'object') {
+      expenseData = arg1;
+      groupId = expenseData.group_id || '';
+    } else {
+      groupId = arg1 || '';
+      expenseData = arg2;
+    }
+
     setActiveGroupIdForExpense(groupId || (expenseData?.group_id ? expenseData.group_id : ''));
     setActiveExpenseData(expenseData);
     setExpenseModalOpen(true);

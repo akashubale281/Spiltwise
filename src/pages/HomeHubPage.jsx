@@ -122,7 +122,7 @@ export default function HomeHubPage({ defaultTab = 'chores', onOpenExpenseModal 
     return map;
   };
 
-  const [staffList, setStaffList] = useState([
+  const DEFAULT_STAFF_LIST = [
     {
       id: 1,
       name: 'Shanti Bai',
@@ -149,9 +149,44 @@ export default function HomeHubPage({ defaultTab = 'chores', onOpenExpenseModal 
       status: 'Advance ₹1,000 adjusted',
       attendanceMap: makeInitialAttendance([10], [20], 25)
     }
-  ]);
+  ];
 
-  const [selectedStaffAttendance, setSelectedStaffAttendance] = useState(1);
+  const [staffList, setStaffList] = useState(() => {
+    try {
+      const saved = localStorage.getItem('splitverse_maid_staff_list');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.error('Failed to load staff list from localStorage:', e);
+    }
+    return DEFAULT_STAFF_LIST;
+  });
+
+  const [selectedStaffAttendance, setSelectedStaffAttendance] = useState(() => {
+    try {
+      const saved = localStorage.getItem('splitverse_selected_staff_id');
+      if (saved !== null) return JSON.parse(saved);
+    } catch (e) {}
+    return 1;
+  });
+
+  // Automatically save staffList to localStorage on every change
+  useEffect(() => {
+    try {
+      localStorage.setItem('splitverse_maid_staff_list', JSON.stringify(staffList));
+    } catch (e) {
+      console.error('Failed to save staff list to localStorage:', e);
+    }
+  }, [staffList]);
+
+  // Automatically save selectedStaffAttendance
+  useEffect(() => {
+    try {
+      localStorage.setItem('splitverse_selected_staff_id', JSON.stringify(selectedStaffAttendance));
+    } catch (e) {}
+  }, [selectedStaffAttendance]);
 
   // Edit total working days for a staff member (e.g. 20, 25, 26, 30 days)
   const handleUpdateTotalDays = (staffId, daysInput) => {
@@ -290,7 +325,7 @@ export default function HomeHubPage({ defaultTab = 'chores', onOpenExpenseModal 
     const perPerson = Math.round(netPay / roommates.length);
 
     if (onOpenExpenseModal) {
-      onOpenExpenseModal({
+      onOpenExpenseModal('', {
         description: `Salary: ${staff.name} (${staff.role.split(' ')[0]}) - Sep 2026`,
         amount: netPay,
         category: 'Services',
@@ -868,6 +903,9 @@ export default function HomeHubPage({ defaultTab = 'chores', onOpenExpenseModal 
                     <div>
                       <div className="flex items-center gap-2.5">
                         <h4 className="font-bold text-sm text-white">{staff.name}</h4>
+                        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          ✓ Auto-saved
+                        </span>
                         <button
                           onClick={() => handleDeleteStaff(staff.id)}
                           title="Delete Maid / Staff Member"
