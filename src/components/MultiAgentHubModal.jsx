@@ -4,7 +4,7 @@ import {
   X,
   Sparkles,
   DollarSign,
-  ShoppingCart,
+  FileText,
   UserCheck,
   Box,
   Tag,
@@ -30,7 +30,7 @@ import {
 
 const AGENTS = [
   { id: 'money', name: 'Money AI', role: 'Budget, Net Worth & Settle', icon: DollarSign, color: 'from-emerald-500 to-teal-600', prompt: 'Who owes me money and how can I optimize debts?' },
-  { id: 'shopping', name: 'Shopping AI', role: 'Price Compare & Recipe Cart', icon: ShoppingCart, color: 'from-cyan-500 to-blue-600', prompt: 'Find the cheapest place to buy Amul Butter and Milk right now.' },
+  { id: 'bills', name: 'Bill Detective AI', role: 'Invoice & Bill Splitting', icon: FileText, color: 'from-cyan-500 to-blue-600', prompt: 'Audit my scanned restaurant bill and verify GST calculations.' },
   { id: 'housekeeper', name: 'Housekeeper AI', role: 'Maid & Cook Payroll & Chores', icon: UserCheck, color: 'from-indigo-600 to-purple-700', prompt: "Calculate Shanti Bai's salary after 2 days of leave and split among 4 flatmates." },
   { id: 'pantry', name: 'Pantry AI', role: 'Kitchen Refills & Expiry', icon: Box, color: 'from-amber-500 to-orange-600', prompt: 'What can I cook with eggs, bread, tomatoes and onions remaining in my pantry?' },
   { id: 'deal', name: 'Deal AI', role: 'Coupons, BOGO & Cashbacks', icon: Tag, color: 'from-purple-500 to-pink-600', prompt: 'What are the best active coupon codes for Zepto and Blinkit today?' }
@@ -183,8 +183,8 @@ export default function MultiAgentHubModal({ isOpen, onClose, onOpenSettle, onOp
     if (!usedLiveLLM) {
       if (selectedAgent.id === 'money') {
         reply = `**Money AI Analysis**: Your net group balance is positive. You have ₹820 pending collection from Rahul. 1-tap UPI payment links have been formatted and ready.`;
-      } else if (selectedAgent.id === 'shopping') {
-        reply = `**Shopping AI Analysis**: Verified 8 quick-commerce dark stores in your pincode. Amul Butter 500g is lowest on **DMart Ready (₹238)** and fastest on **Zepto (8 mins, ₹256)**. Cart split saves ₹56!`;
+      } else if (selectedAgent.id === 'bills') {
+        reply = `**Bill Detective AI**: Audited your latest invoice. Subtotal, GST (CGST + SGST) and service charges calculated accurately. Ready to split equally or itemized!`;
       } else if (selectedAgent.id === 'housekeeper') {
         reply = `**Housekeeper AI Payroll**: Shanti Bai's September base is ₹4,500. With 2 leave days (-₹300), net salary is **₹4,200**. Split 4 ways: **₹1,050 per flatmate**. UPI ID: shanti.bai@ybl is ready for payment.`;
       } else if (selectedAgent.id === 'pantry') {

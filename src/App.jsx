@@ -47,9 +47,7 @@ import JoinGroup from './pages/JoinGroup';
 
 // Super App Ecosystem Pages
 import LifeDashboard from './pages/LifeDashboard';
-import ShoppingHubPage from './pages/ShoppingHubPage';
 import HomeHubPage from './pages/HomeHubPage';
-import SpendingUniverseView from './pages/SpendingUniverseView';
 import ExtendedHubsView from './pages/ExtendedHubsView';
 
 function ProtectedLayout({
@@ -131,6 +129,7 @@ function MainApp() {
   const [settleModalOpen, setSettleModalOpen] = useState(false);
   const [settleProps, setSettleProps] = useState({});
   const [manualBillOpen, setManualBillOpen] = useState(false);
+  const [manualBillData, setManualBillData] = useState(null);
   const [receiptScanOpen, setReceiptScanOpen] = useState(false);
   const [newGroupOpen, setNewGroupOpen] = useState(false);
   const [joinGroupOpen, setJoinGroupOpen] = useState(false);
@@ -171,9 +170,14 @@ function MainApp() {
     });
   };
 
+  const openManualBill = (billData = null) => {
+    setManualBillData(billData);
+    setManualBillOpen(true);
+  };
+
   const sharedLayoutProps = {
     onOpenCalculator: () => setCalcOpen(true),
-    onOpenManualBill: () => setManualBillOpen(true),
+    onOpenManualBill: (billData = null) => openManualBill(billData),
     onOpenReceiptScan: () => setReceiptScanOpen(true),
     onOpenSettle: () => openSettleModal(),
     onOpenNewGroup: () => setNewGroupOpen(true),
@@ -214,16 +218,6 @@ function MainApp() {
           }
         />
 
-        {/* Super App Ecosystem: Smart Quick-Commerce Shopping Hub */}
-        <Route
-          path="/shopping"
-          element={
-            <ProtectedLayout {...sharedLayoutProps}>
-              <ShoppingHubPage onOpenExpenseModal={openExpenseModal} />
-            </ProtectedLayout>
-          }
-        />
-
         {/* Super App Ecosystem: Roommate OS & Chore Wheel */}
         <Route
           path="/home-hub"
@@ -240,16 +234,6 @@ function MainApp() {
           element={
             <ProtectedLayout {...sharedLayoutProps}>
               <HomeHubPage defaultTab="staff" onOpenExpenseModal={openExpenseModal} />
-            </ProtectedLayout>
-          }
-        />
-
-        {/* Super App Ecosystem: 3D Celestial Spending Universe */}
-        <Route
-          path="/universe"
-          element={
-            <ProtectedLayout {...sharedLayoutProps}>
-              <SpendingUniverseView />
             </ProtectedLayout>
           }
         />
@@ -485,7 +469,11 @@ function MainApp() {
 
       <ManualBillModal
         isOpen={manualBillOpen}
-        onClose={() => setManualBillOpen(false)}
+        initialBill={manualBillData}
+        onClose={() => {
+          setManualBillOpen(false);
+          setManualBillData(null);
+        }}
         onConvertToExpense={(expenseData) => {
           openExpenseModal('', expenseData);
         }}
@@ -496,6 +484,10 @@ function MainApp() {
         onClose={() => setReceiptScanOpen(false)}
         onApplyToExpense={(expenseData) => {
           openExpenseModal('', expenseData);
+        }}
+        onOpenInManualBill={(billData) => {
+          setReceiptScanOpen(false);
+          openManualBill(billData);
         }}
       />
 

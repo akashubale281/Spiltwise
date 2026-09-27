@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Sparkles,
   DollarSign,
-  ShoppingCart,
   Fuel,
   Zap,
   TrendingUp,
@@ -41,16 +40,6 @@ export default function LifeDashboard({ onOpenAI, onOpenMultiAgent, onOpenThemes
       badge: 'Action Needed'
     },
     {
-      id: 'shopping',
-      title: 'Smart Quick-Commerce Deal',
-      desc: 'Your regular basket (Milk, Eggs, Atta) is ₹56 cheaper on Zepto right now.',
-      icon: ShoppingCart,
-      actionText: 'Open Cart Optimizer',
-      actionTo: '/shopping',
-      color: 'from-cyan-500 to-blue-600',
-      badge: 'Save ₹56'
-    },
-    {
       id: 'mobility',
       title: 'Fuel & Mobility Radar',
       desc: 'Indian Oil petrol station 2.1km ahead on Indiranagar 100ft Rd is ₹3/L cheaper.',
@@ -63,7 +52,7 @@ export default function LifeDashboard({ onOpenAI, onOpenMultiAgent, onOpenThemes
     {
       id: 'maid-payroll',
       title: 'Maid & Cook Payroll',
-      desc: 'Shanti Bai (Mopping) & Ramesh (Cook) 30-day attendance updated. Ready to disburse salary.',
+      desc: 'Shanti Bai & Ramesh Cook attendance updated. Edit working days & disburse salary via UPI.',
       icon: UserCheck,
       actionText: 'Open Maid Payroll',
       actionTo: '/maid',
@@ -93,10 +82,8 @@ export default function LifeDashboard({ onOpenAI, onOpenMultiAgent, onOpenThemes
   ];
 
   const hubsList = [
-    { name: 'Shopping Hub', icon: ShoppingCart, to: '/shopping', color: 'text-cyan-400', desc: '8-App price compare & cart split' },
     { name: 'Home Hub', icon: Home, to: '/home-hub', color: 'text-emerald-400', desc: 'Roommate OS, rent & chores' },
     { name: 'Maid & Staff', icon: UserCheck, to: '/maid', color: 'text-indigo-400', desc: 'Cook & maid attendance & payroll' },
-    { name: '3D Universe', icon: Sparkles, to: '/universe', color: 'text-purple-400', desc: 'Floating planetary spending orbits' },
     { name: 'Goals Hub', icon: Target, to: '/hubs', color: 'text-amber-400', desc: 'Shared savings countdown pots' },
     { name: 'Food Hub', icon: Utensils, to: '/hubs', color: 'text-orange-400', desc: 'Zomato vs Swiggy comparison' },
     { name: 'Mobility Hub', icon: Car, to: '/hubs', color: 'text-teal-400', desc: 'Uber vs Ola vs Rapido fares' },

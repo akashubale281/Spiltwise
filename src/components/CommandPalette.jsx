@@ -21,9 +21,8 @@ import {
   X,
   ArrowRight,
   Palette,
-  ShoppingCart,
+  FileText,
   Home,
-  Globe,
   Layers,
   Zap,
   Bot,
@@ -37,6 +36,7 @@ export default function CommandPalette({
   onOpenVoice,
   onOpenAI,
   onOpenReceipt,
+  onOpenManualBill,
   onOpenWhatsApp,
   onOpenRestaurantSplit,
   onOpenRoast,
@@ -83,15 +83,15 @@ export default function CommandPalette({
       }
     },
     {
-      id: 'shopping-hub',
-      name: 'Smart Shopping & Quick-Commerce Optimizer',
-      desc: 'Live price comparison across Blinkit, Zepto, Instamart, BigBasket, JioMart',
-      icon: ShoppingCart,
-      badge: '8 Apps',
+      id: 'create-bill',
+      name: 'Create / Generate Bill Manually',
+      desc: 'Generate itemized GST tax invoices, restaurant bills, and custom UPI QR codes',
+      icon: FileText,
+      badge: 'Bill Maker',
       color: 'from-cyan-500 to-blue-600',
       action: () => {
         onClose();
-        navigate('/shopping');
+        onOpenManualBill?.();
       }
     },
     {
@@ -107,15 +107,15 @@ export default function CommandPalette({
       }
     },
     {
-      id: 'universe',
-      name: '3D Spending Universe & Planets',
-      desc: 'Planetary orbit visualization, money flow particles, and affinity graph',
-      icon: Globe,
-      badge: '3D Engine',
-      color: 'from-purple-600 to-pink-600',
+      id: 'maid-payroll',
+      name: 'Domestic Staff & Maid Payroll',
+      desc: 'Manage attendance (20/25/30 days), leave cuts, and 1-tap UPI payouts',
+      icon: UserCheck,
+      badge: 'Payroll',
+      color: 'from-amber-500 to-orange-600',
       action: () => {
         onClose();
-        navigate('/universe');
+        navigate('/maid');
       }
     },
     {

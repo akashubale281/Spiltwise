@@ -62,6 +62,7 @@ export default function HomeHubPage({ defaultTab = 'chores', onOpenExpenseModal 
     name: '',
     role: 'Housekeeping & Mopping',
     baseSalary: 4500,
+    totalWorkingDays: 26,
     upiId: '',
     phone: '+91 ',
     advance: 0
@@ -110,10 +111,10 @@ export default function HomeHubPage({ defaultTab = 'chores', onOpenExpenseModal 
   const [powerDiscom, setPowerDiscom] = useState('BESCOM (Bangalore)');
   const [showSpikeAlert, setShowSpikeAlert] = useState(true);
 
-  // Domestic Staff Payroll with 30-Day Attendance Matrix
-  const makeInitialAttendance = (absents = [7, 14, 21], halfs = [18]) => {
+  // Domestic Staff Payroll with Configurable Monthly Attendance Matrix
+  const makeInitialAttendance = (absents = [7, 14, 21], halfs = [18], totalDays = 26) => {
     const map = {};
-    for (let i = 1; i <= 30; i++) {
+    for (let i = 1; i <= totalDays; i++) {
       if (absents.includes(i)) map[i] = 'A';
       else if (halfs.includes(i)) map[i] = 'HD';
       else map[i] = 'P';
@@ -127,30 +128,62 @@ export default function HomeHubPage({ defaultTab = 'chores', onOpenExpenseModal 
       name: 'Shanti Bai',
       role: 'Housekeeping & Mopping',
       baseSalary: 4500,
-      attendanceDays: 26,
-      totalWorkingDays: 30,
-      deduction: 525,
+      attendanceDays: 22,
+      totalWorkingDays: 26,
+      deduction: 519,
       upiId: 'shanti.bai@ybl',
       phone: '+91 98452 11092',
       status: 'Ready for Payment',
-      attendanceMap: makeInitialAttendance([7, 14, 21], [18])
+      attendanceMap: makeInitialAttendance([7, 14, 21], [18], 26)
     },
     {
       id: 2,
       name: 'Ramesh Cook',
       role: 'North & South Indian Meals',
       baseSalary: 6500,
-      attendanceDays: 28,
-      totalWorkingDays: 30,
-      deduction: 217,
+      attendanceDays: 23.5,
+      totalWorkingDays: 25,
+      deduction: 390,
       upiId: 'rameshcook99@paytm',
       phone: '+91 97410 88231',
       status: 'Advance ₹1,000 adjusted',
-      attendanceMap: makeInitialAttendance([10], [25])
+      attendanceMap: makeInitialAttendance([10], [20], 25)
     }
   ]);
 
   const [selectedStaffAttendance, setSelectedStaffAttendance] = useState(1);
+
+  // Edit total working days for a staff member (e.g. 20, 25, 26, 30 days)
+  const handleUpdateTotalDays = (staffId, daysInput) => {
+    const numDays = Math.max(1, Math.min(31, parseInt(daysInput) || 26));
+    setStaffList(prev =>
+      prev.map(staff => {
+        if (staff.id !== staffId) return staff;
+        const newMap = { ...staff.attendanceMap };
+        for (let d = 1; d <= numDays; d++) {
+          if (!newMap[d]) newMap[d] = 'P';
+        }
+        let present = 0;
+        let absent = 0;
+        let half = 0;
+        for (let d = 1; d <= numDays; d++) {
+          const val = newMap[d] || 'P';
+          if (val === 'P') present++;
+          else if (val === 'A') absent++;
+          else if (val === 'HD') half++;
+        }
+        const dayRate = staff.baseSalary / numDays;
+        const deduction = Math.round(absent * dayRate + half * (dayRate / 2));
+        return {
+          ...staff,
+          totalWorkingDays: numDays,
+          attendanceMap: newMap,
+          attendanceDays: present + (half * 0.5),
+          deduction
+        };
+      })
+    );
+  };
 
   // Roommate 30-Day Out-of-Town / Away Tracker (Grocery & Mess Rebate)
   const [roommateAwayMap, setRoommateAwayMap] = useState({
@@ -168,22 +201,24 @@ export default function HomeHubPage({ defaultTab = 'chores', onOpenExpenseModal 
         const next = current === 'P' ? 'A' : current === 'A' ? 'HD' : 'P';
         const newMap = { ...staff.attendanceMap, [dayNum]: next };
 
+        const totalDays = staff.totalWorkingDays || 26;
         let present = 0;
         let absent = 0;
         let half = 0;
-        for (let d = 1; d <= 30; d++) {
-          if (newMap[d] === 'P') present++;
-          else if (newMap[d] === 'A') absent++;
-          else if (newMap[d] === 'HD') half++;
+        for (let d = 1; d <= totalDays; d++) {
+          const val = newMap[d] || 'P';
+          if (val === 'P') present++;
+          else if (val === 'A') absent++;
+          else if (val === 'HD') half++;
         }
 
-        const dayRate = staff.baseSalary / 30;
+        const dayRate = staff.baseSalary / totalDays;
         const deduction = Math.round(absent * dayRate + half * (dayRate / 2));
 
         return {
           ...staff,
           attendanceMap: newMap,
-          attendanceDays: present,
+          attendanceDays: present + (half * 0.5),
           deduction
         };
       })
@@ -204,18 +239,19 @@ export default function HomeHubPage({ defaultTab = 'chores', onOpenExpenseModal 
     e?.preventDefault();
     if (!newStaffForm.name.trim() || !newStaffForm.baseSalary) return;
     const newId = Date.now();
+    const workDays = Number(newStaffForm.totalWorkingDays) || 26;
     const newStaff = {
       id: newId,
       name: newStaffForm.name.trim(),
       role: newStaffForm.role,
       baseSalary: Number(newStaffForm.baseSalary),
-      attendanceDays: 30,
-      totalWorkingDays: 30,
+      attendanceDays: workDays,
+      totalWorkingDays: workDays,
       deduction: 0,
       upiId: newStaffForm.upiId.trim() || `${newStaffForm.name.toLowerCase().replace(/\s+/g, '')}@upi`,
       phone: newStaffForm.phone.trim() || '+91 98000 00000',
       status: 'Ready for Payment',
-      attendanceMap: makeInitialAttendance([], [])
+      attendanceMap: makeInitialAttendance([], [], workDays)
     };
     setStaffList(prev => [...prev, newStaff]);
     setSelectedStaffAttendance(newId);
@@ -224,27 +260,29 @@ export default function HomeHubPage({ defaultTab = 'chores', onOpenExpenseModal 
       name: '',
       role: 'Housekeeping & Mopping',
       baseSalary: 4500,
+      totalWorkingDays: 26,
       upiId: '',
       phone: '+91 ',
       advance: 0
     });
-    setPaymentSuccessToast(`Added ${newStaff.name} (${newStaff.role}) to domestic payroll!`);
+    setPaymentSuccessToast(`Added ${newStaff.name} (${newStaff.role}) with ${workDays}-day schedule!`);
     setTimeout(() => setPaymentSuccessToast(null), 4000);
   };
 
   const handleDeleteStaff = (staffId) => {
-    if (staffList.length <= 1) {
-      alert('Cannot delete the last remaining staff member.');
-      return;
-    }
     const staff = staffList.find(s => s.id === staffId);
-    const nextRemaining = staffList.find(s => s.id !== staffId);
-    setStaffList(prev => prev.filter(s => s.id !== staffId));
-    if (nextRemaining) {
-      setSelectedStaffAttendance(nextRemaining.id);
+    if (!staff) return;
+    if (window.confirm(`Are you sure you want to delete ${staff.name} from payroll?`)) {
+      const remaining = staffList.filter(s => s.id !== staffId);
+      setStaffList(remaining);
+      if (remaining.length > 0) {
+        setSelectedStaffAttendance(remaining[0].id);
+      } else {
+        setSelectedStaffAttendance(null);
+      }
+      setPaymentSuccessToast(`Removed ${staff.name} from domestic payroll.`);
+      setTimeout(() => setPaymentSuccessToast(null), 4000);
     }
-    setPaymentSuccessToast(`Removed ${staff?.name || 'staff member'} from payroll.`);
-    setTimeout(() => setPaymentSuccessToast(null), 4000);
   };
 
   const handleConfirmPayment = (staff) => {
@@ -800,8 +838,27 @@ export default function HomeHubPage({ defaultTab = 'chores', onOpenExpenseModal 
             </div>
 
             {/* Current Selected Staff Matrix */}
-            {(() => {
+            {staffList.length === 0 ? (
+              <div className="text-center py-12 space-y-3">
+                <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto text-2xl">
+                  🧹
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-base font-bold text-white">No Domestic Staff on Payroll</h4>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                    Add your maid, cook, or cleaning helper to track custom attendance (20/25/30 days) and disburse salaries via UPI.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsAddStaffOpen(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20 transition active:scale-95"
+                >
+                  <Plus className="w-4 h-4" /> Add Domestic Staff
+                </button>
+              </div>
+            ) : (() => {
               const staff = staffList.find(s => s.id === selectedStaffAttendance) || staffList[0];
+              const totalDays = staff.totalWorkingDays || 26;
               const netPay = staff.baseSalary - staff.deduction;
               const perPerson = Math.round(netPay / roommates.length);
 
@@ -809,24 +866,57 @@ export default function HomeHubPage({ defaultTab = 'chores', onOpenExpenseModal 
                 <div className="space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60">
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2.5">
                         <h4 className="font-bold text-sm text-white">{staff.name}</h4>
-                        {staffList.length > 1 && (
-                          <button
-                            onClick={() => handleDeleteStaff(staff.id)}
-                            title="Remove Staff"
-                            className="p-1 rounded text-slate-500 hover:text-rose-400 transition"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleDeleteStaff(staff.id)}
+                          title="Delete Maid / Staff Member"
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold transition active:scale-95"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete Maid</span>
+                        </button>
                       </div>
                       <span className="text-xs text-indigo-400">{staff.role} • Base: {formatAmount(staff.baseSalary)}</span>
                     </div>
+
+                    {/* Edit Total Working Days (e.g. 20 or 25 days only in a month) */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-indigo-500/30">
+                      <span className="text-[11px] font-semibold text-slate-300">Total Month Days:</span>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {[20, 25, 26, 30].map(d => (
+                          <button
+                            key={d}
+                            type="button"
+                            onClick={() => handleUpdateTotalDays(staff.id, d)}
+                            className={`px-2 py-0.5 rounded text-[11px] font-bold transition ${
+                              totalDays === d
+                                ? 'bg-indigo-600 text-white shadow-sm'
+                                : 'bg-slate-800 text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            {d}d
+                          </button>
+                        ))}
+                        <div className="flex items-center gap-1 pl-1">
+                          <input
+                            type="number"
+                            min="1"
+                            max="31"
+                            value={totalDays}
+                            onChange={(e) => handleUpdateTotalDays(staff.id, e.target.value)}
+                            className="w-12 px-1.5 py-0.5 text-[11px] font-bold text-center bg-slate-950 border border-slate-700 rounded text-emerald-400 focus:outline-none focus:border-indigo-500"
+                            title="Edit custom working days (e.g. 20 or 25)"
+                          />
+                          <span className="text-[10px] text-slate-400">days</span>
+                        </div>
+                      </div>
+                    </div>
+
                     <div className="flex items-center gap-4 text-xs">
                       <div>
                         <span className="text-slate-400 block text-[10px] uppercase">Days Worked</span>
-                        <span className="font-extrabold text-emerald-400">{staff.attendanceDays} / 30 Days</span>
+                        <span className="font-extrabold text-emerald-400">{staff.attendanceDays} / {totalDays} Days</span>
                       </div>
                       <div>
                         <span className="text-slate-400 block text-[10px] uppercase">Leave Cuts</span>
@@ -839,15 +929,15 @@ export default function HomeHubPage({ defaultTab = 'chores', onOpenExpenseModal 
                     </div>
                   </div>
 
-                  {/* 30-Day Grid: 1 to 30 */}
+                  {/* Configurable Attendance Grid (e.g. 1 to 20 or 25 or 30 days) */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
                       <span>Click to cycle: <strong className="text-emerald-400">P (Present)</strong> ➔ <strong className="text-rose-400">A (Absent)</strong> ➔ <strong className="text-amber-400">HD (Half-Day)</strong></span>
-                      <span className="font-mono">Daily Rate: ₹{Math.round(staff.baseSalary / 30)}/day</span>
+                      <span className="font-mono">Daily Rate: ₹{Math.round(staff.baseSalary / totalDays)}/day ({totalDays} days schedule)</span>
                     </div>
 
                     <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-10 gap-2">
-                      {Array.from({ length: 30 }, (_, i) => i + 1).map(day => {
+                      {Array.from({ length: totalDays }, (_, i) => i + 1).map(day => {
                         const status = staff.attendanceMap?.[day] || 'P';
                         return (
                           <button
@@ -1114,6 +1204,39 @@ export default function HomeHubPage({ defaultTab = 'chores', onOpenExpenseModal 
                     value={newStaffForm.upiId}
                     onChange={e => setNewStaffForm({ ...newStaffForm, upiId: e.target.value })}
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white text-sm focus:border-indigo-500 focus:outline-none font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Expected Monthly Working Days (e.g. 20 or 25 Days)
+                </label>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 bg-slate-800 p-1 rounded-xl border border-slate-700">
+                    {[20, 25, 26, 30].map(d => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setNewStaffForm({ ...newStaffForm, totalWorkingDays: d })}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                          Number(newStaffForm.totalWorkingDays) === d
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {d} Days
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    placeholder="Custom"
+                    value={newStaffForm.totalWorkingDays || ''}
+                    onChange={e => setNewStaffForm({ ...newStaffForm, totalWorkingDays: e.target.value })}
+                    className="w-20 px-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-white text-xs font-bold text-center focus:border-indigo-500 focus:outline-none"
                   />
                 </div>
               </div>

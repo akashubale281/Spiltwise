@@ -269,10 +269,10 @@ export default function AIAccountantModal({ isOpen, onClose, onOpenSettle }) {
             action: () => setShowKeyModal(true)
           },
           {
-            label: 'View Spending Universe',
+            label: 'View All Expenses',
             action: () => {
               onClose();
-              window.location.href = '/universe';
+              window.location.href = '/expenses';
             }
           }
         ];

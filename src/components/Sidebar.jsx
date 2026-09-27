@@ -16,13 +16,12 @@ import {
   Calendar,
   Trophy,
   Sparkles,
-  ShoppingCart,
   Home,
-  Globe,
   Layers,
   Palette,
   Bot,
-  Zap
+  Zap,
+  FileText
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
@@ -31,6 +30,7 @@ export default function Sidebar({
   onOpenNewGroup,
   onOpenJoinGroup,
   onOpenCalculator,
+  onOpenManualBill,
   onOpenThemes,
   onOpenMultiAgent,
   onOpenAutoRules
@@ -58,9 +58,7 @@ export default function Sidebar({
 
   const superAppLinks = [
     { to: '/life', label: 'Life Dashboard', icon: Sparkles, badge: 'AI Hub' },
-    { to: '/shopping', label: 'Smart Shopping', icon: ShoppingCart, badge: '8 Apps' },
     { to: '/home-hub', label: 'Roommate OS', icon: Home, badge: 'Chores' },
-    { to: '/universe', label: '3D Universe', icon: Globe, badge: '3D' },
     { to: '/hubs', label: 'Specialized Hubs', icon: Layers, badge: 'Pots' }
   ];
 
@@ -237,8 +235,19 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Quick Tool Launchers (Themes, Multi-Agent, Auto-Rules, Calculator) */}
+      {/* Quick Tool Launchers (Create Bill, Themes, Multi-Agent, Auto-Rules, Calculator) */}
       <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-1.5">
+        <button
+          onClick={() => onOpenManualBill?.()}
+          className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-semibold transition border border-emerald-500/20"
+        >
+          <div className="flex items-center space-x-2">
+            <FileText className="w-4 h-4 text-emerald-400" />
+            <span>Create / Edit Bill</span>
+          </div>
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+
         <button
           onClick={onOpenThemes}
           className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-xs font-semibold transition border border-purple-500/20"

@@ -12,12 +12,71 @@ import {
   CreditCard,
   QrCode,
   Sparkles,
-  Building2
+  Building2,
+  Receipt,
+  RotateCcw
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-export default function ManualBillModal({ isOpen, onClose, onConvertToExpense }) {
+// Quick Bill Templates
+const BILL_TEMPLATES = [
+  {
+    name: '🍽️ Restaurant / Cafe',
+    vendor: 'Main Street Cafe & Bistro',
+    gstin: '29AABCS1429B1ZB',
+    items: [
+      { name: 'Wood-fired Pizza', hsn: '9963', qty: 2, price: 380 },
+      { name: 'Cold Brew Coffee', hsn: '2202', qty: 3, price: 150 },
+      { name: 'Garlic Bread Sticks', hsn: '1905', qty: 1, price: 180 }
+    ],
+    taxRate: 5,
+    tip: 50
+  },
+  {
+    name: '🛒 Grocery Supermarket',
+    vendor: 'Spencers Fresh Supermarket',
+    gstin: '29AABCS9988C1Z2',
+    items: [
+      { name: 'Basmati Rice 5kg', hsn: '1006', qty: 1, price: 490 },
+      { name: 'Cooking Oil 2L', hsn: '1512', qty: 1, price: 320 },
+      { name: 'Spices & Masala Pack', hsn: '0910', qty: 2, price: 110 },
+      { name: 'Fresh Fruits & Veggies', hsn: '0709', qty: 1, price: 280 }
+    ],
+    taxRate: 0,
+    tip: 0
+  },
+  {
+    name: '💡 Electricity & Utility',
+    vendor: 'State Electricity Supply (BESCOM)',
+    gstin: '29AAACB0563G1ZG',
+    items: [
+      { name: 'Monthly Consumption Charges', hsn: '9987', qty: 1, price: 2150 },
+      { name: 'Fuel Adjustment (FAC)', hsn: '9987', qty: 1, price: 180 },
+      { name: 'Meter Rent & Fixed Tariff', hsn: '9987', qty: 1, price: 120 }
+    ],
+    taxRate: 0,
+    tip: 0
+  },
+  {
+    name: '🧹 Maid & Cook Pay Slip',
+    vendor: 'Domestic Staff Monthly Retainer',
+    gstin: 'NOT APPLICABLE',
+    items: [
+      { name: 'Domestic Cleaning & Sweeping (25 Days)', hsn: '9997', qty: 1, price: 3500 },
+      { name: 'Cooking & Vessel Cleaning (Morning & Evening)', hsn: '9997', qty: 1, price: 3000 }
+    ],
+    taxRate: 0,
+    tip: 200
+  }
+];
+
+export default function ManualBillModal({
+  isOpen,
+  onClose,
+  onConvertToExpense,
+  initialBill
+}) {
   const { user } = useAuth();
   const [vendorName, setVendorName] = useState('Cafe & Grill');
   const [invoiceNumber, setInvoiceNumber] = useState(`INV-${Date.now().toString().slice(-5)}`);
@@ -43,6 +102,51 @@ export default function ManualBillModal({ isOpen, onClose, onConvertToExpense })
   const [customUpiInput, setCustomUpiInput] = useState('');
   const [qrData, setQrData] = useState(null);
   const [showQr, setShowQr] = useState(true);
+
+  // If initialBill is provided (e.g. from receipt scanner or edit action), populate form!
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (initialBill) {
+      if (initialBill.vendorName || initialBill.vendor_name || initialBill.merchant) {
+        setVendorName(initialBill.vendorName || initialBill.vendor_name || initialBill.merchant);
+      }
+      if (initialBill.invoiceNumber || initialBill.invoice_number) {
+        setInvoiceNumber(initialBill.invoiceNumber || initialBill.invoice_number);
+      }
+      if (initialBill.billDate || initialBill.date) {
+        setBillDate(initialBill.billDate || initialBill.date);
+      }
+      if (initialBill.gstin) {
+        setGstin(initialBill.gstin);
+      }
+      if (initialBill.placeOfSupply || initialBill.place_of_supply) {
+        setPlaceOfSupply(initialBill.placeOfSupply || initialBill.place_of_supply);
+      }
+      if (initialBill.notes) {
+        setNotes(initialBill.notes);
+      }
+      if (initialBill.taxRate !== undefined) {
+        setTaxRate(Number(initialBill.taxRate));
+      } else if (initialBill.tax_rate_pct !== undefined) {
+        setTaxRate(Number(initialBill.tax_rate_pct));
+      }
+      if (initialBill.tipAmount !== undefined) {
+        setTipAmount(Number(initialBill.tipAmount));
+      }
+      if (Array.isArray(initialBill.items) && initialBill.items.length > 0) {
+        setItems(
+          initialBill.items.map((it, idx) => ({
+            id: it.id || idx + 1,
+            name: it.name || 'Item',
+            hsn: it.hsn || '9963',
+            qty: Number(it.qty) || 1,
+            price: Number(it.price) || 0
+          }))
+        );
+      }
+    }
+  }, [isOpen, initialBill]);
 
   // Load user's UPI IDs
   useEffect(() => {
@@ -79,6 +183,23 @@ export default function ManualBillModal({ isOpen, onClose, onConvertToExpense })
   const updateItem = (id, field, val) => {
     setItems((prev) =>
       prev.map((it) => (it.id === id ? { ...it, [field]: val } : it))
+    );
+  };
+
+  const applyTemplate = (tpl) => {
+    setVendorName(tpl.vendor);
+    setGstin(tpl.gstin);
+    setInvoiceNumber(`INV-${Date.now().toString().slice(-5)}`);
+    setTaxRate(tpl.taxRate);
+    setTipAmount(tpl.tip);
+    setItems(
+      tpl.items.map((it, idx) => ({
+        id: idx + 1,
+        name: it.name,
+        hsn: it.hsn,
+        qty: it.qty,
+        price: it.price
+      }))
     );
   };
 
@@ -124,30 +245,33 @@ export default function ManualBillModal({ isOpen, onClose, onConvertToExpense })
         total: Math.round((Number(it.qty) || 1) * (Number(it.price) || 0) * 100) / 100
       }));
 
-      const res = await api.createManualBill({
-        title: `${vendorName} Bill`,
-        invoice_number: invoiceNumber,
-        vendor_name: vendorName,
-        date: billDate,
-        subtotal,
-        tax_amount: taxAmount,
-        tip_amount: Number(tipAmount) || 0,
-        total_amount: grandTotal,
-        items: formattedItems,
-        notes,
-        upi_id: activeUpi
-      });
-
-      if (res.success) {
-        onConvertToExpense?.({
-          description: `${vendorName} (Bill #${invoiceNumber})`,
-          amount: grandTotal,
+      // Try creating in backend; if offline/error, proceed smoothly anyway
+      try {
+        await api.createManualBill({
+          title: `${vendorName} Bill`,
+          invoice_number: invoiceNumber,
+          vendor_name: vendorName,
           date: billDate,
-          upi_id: activeUpi,
-          notes: `Generated Bill #${invoiceNumber}: ${items.map((i) => `${i.qty}x ${i.name}`).join(', ')}`
+          subtotal,
+          tax_amount: taxAmount,
+          tip_amount: Number(tipAmount) || 0,
+          total_amount: grandTotal,
+          items: formattedItems,
+          notes,
+          upi_id: activeUpi
         });
-        onClose();
+      } catch (e) {
+        console.warn('Backend bill storage note:', e);
       }
+
+      onConvertToExpense?.({
+        description: `${vendorName} (Bill #${invoiceNumber})`,
+        amount: grandTotal,
+        date: billDate,
+        upi_id: activeUpi,
+        notes: `Generated Bill #${invoiceNumber}: ${items.map((i) => `${i.qty}x ${i.name}`).join(', ')}`
+      });
+      onClose();
     } catch (err) {
       console.error('Error saving bill:', err);
     }
@@ -156,17 +280,22 @@ export default function ManualBillModal({ isOpen, onClose, onConvertToExpense })
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-fade-in print:p-0 print:bg-white">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] print:border-none print:shadow-none print:max-h-none">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-fade-in print:p-0 print:bg-white">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[92vh] print:border-none print:shadow-none print:max-h-none">
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-amber-50/50 dark:bg-amber-950/20 print:hidden">
           <div className="flex items-center space-x-2.5">
             <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
               <FileText className="w-4 h-4" />
             </div>
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
-              Manual Bill & Invoice Generator
-            </h3>
+            <div>
+              <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
+                Manual Bill & Invoice Generator
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Generate, customize & itemize any bill with automatic GST calculation
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -177,7 +306,26 @@ export default function ManualBillModal({ isOpen, onClose, onConvertToExpense })
         </div>
 
         {/* Content Body */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1 text-slate-800 dark:text-slate-200">
+        <div className="p-5 sm:p-6 overflow-y-auto space-y-5 flex-1 text-slate-800 dark:text-slate-200">
+          {/* Quick Preset Templates */}
+          <div className="space-y-1.5 print:hidden">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+              ⚡ Quick Bill Presets (Auto-fill line items)
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {BILL_TEMPLATES.map((tpl, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => applyTemplate(tpl)}
+                  className="px-2.5 py-1 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-amber-100/60 dark:hover:bg-amber-950/40 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition active:scale-95"
+                >
+                  {tpl.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Bill Top Details */}
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800">
             <div>
@@ -301,7 +449,7 @@ export default function ManualBillModal({ isOpen, onClose, onConvertToExpense })
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Itemized Expenses
+                Itemized Expenses (Editable)
               </span>
               <button
                 type="button"
@@ -318,7 +466,7 @@ export default function ManualBillModal({ isOpen, onClose, onConvertToExpense })
                 <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 uppercase font-bold text-[10px]">
                   <tr>
                     <th className="p-3">Item Description</th>
-                    <th className="p-3 w-20 text-center">HSN/SAC</th>
+                    <th className="p-3 w-20 text-center">HSN</th>
                     <th className="p-3 w-16 text-center">Qty</th>
                     <th className="p-3 w-24 text-right">Price (₹)</th>
                     <th className="p-3 w-24 text-right">Total</th>
@@ -493,7 +641,7 @@ export default function ManualBillModal({ isOpen, onClose, onConvertToExpense })
               onClick={handleSaveAndConvert}
               className="flex items-center space-x-2 px-5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 text-white shadow-md shadow-blue-500/25"
             >
-              <span>Split as Group Expense</span>
+              <span>Split as Group Expense (₹{grandTotal.toFixed(2)})</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import {
   Sparkles,
   LayoutDashboard,
-  ShoppingCart,
+  UserCheck,
   Plus,
   CreditCard
 } from 'lucide-react';
@@ -54,9 +54,9 @@ export default function BottomNav({ onOpenCalculator, onOpenExpenseModal }) {
           <span className="text-[10px] font-semibold text-slate-400 mt-0.5">Add</span>
         </div>
 
-        {/* Quick-Commerce Shopping Hub */}
+        {/* Maid & Staff Payroll */}
         <NavLink
-          to="/shopping"
+          to="/maid"
           className={({ isActive }) =>
             `flex flex-col items-center justify-center flex-1 h-full py-1 transition-colors ${
               isActive
@@ -65,8 +65,8 @@ export default function BottomNav({ onOpenCalculator, onOpenExpenseModal }) {
             }`
           }
         >
-          <ShoppingCart className="w-5 h-5 mb-0.5" />
-          <span className="text-[10px] tracking-tight">Shop</span>
+          <UserCheck className="w-5 h-5 mb-0.5" />
+          <span className="text-[10px] tracking-tight">Staff</span>
         </NavLink>
 
         {/* Settlements & UPI */}

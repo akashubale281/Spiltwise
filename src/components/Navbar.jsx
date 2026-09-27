@@ -22,9 +22,7 @@ import {
   Trophy,
   Calendar,
   Palette,
-  ShoppingCart,
   Home,
-  Globe,
   Layers,
   Zap,
   KeyRound
@@ -124,6 +122,15 @@ export default function Navbar({
             >
               <Bot className="w-4 h-4" />
               <span>5 Agents</span>
+            </button>
+
+            <button
+              onClick={() => onOpenManualBill?.()}
+              className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 transition active:scale-95"
+              title="Create / Generate Bill Manually"
+            >
+              <FileText className="w-4 h-4 text-indigo-400" />
+              <span>Create Bill</span>
             </button>
 
             <button
@@ -367,14 +374,6 @@ export default function Navbar({
                 <span>Life Dashboard</span>
               </Link>
               <Link
-                to="/shopping"
-                onClick={() => setMobileNavOpen(false)}
-                className="flex items-center space-x-2 p-2 bg-slate-800/60 hover:bg-slate-800 rounded-xl text-xs text-white"
-              >
-                <ShoppingCart className="w-4 h-4 text-cyan-400" />
-                <span>Shopping Hub</span>
-              </Link>
-              <Link
                 to="/home-hub"
                 onClick={() => setMobileNavOpen(false)}
                 className="flex items-center space-x-2 p-2 bg-slate-800/60 hover:bg-slate-800 rounded-xl text-xs text-white"
@@ -383,12 +382,12 @@ export default function Navbar({
                 <span>Roommate OS</span>
               </Link>
               <Link
-                to="/universe"
+                to="/maid"
                 onClick={() => setMobileNavOpen(false)}
                 className="flex items-center space-x-2 p-2 bg-slate-800/60 hover:bg-slate-800 rounded-xl text-xs text-white"
               >
-                <Globe className="w-4 h-4 text-purple-400" />
-                <span>3D Universe</span>
+                <User className="w-4 h-4 text-emerald-400" />
+                <span>Maid Payroll</span>
               </Link>
               <Link
                 to="/hubs"

@@ -109,21 +109,20 @@ export default function Dashboard({
           {/* Quick Action Matrix */}
           <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={onOpenVoice}
-              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 font-bold text-xs transition active:scale-95 shadow-sm"
-              title="Speak Expense"
+              onClick={() => onOpenExpenseModal()}
+              className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs shadow-lg shadow-cyan-500/30 transition active:scale-95"
             >
-              <Mic className="w-4 h-4 text-cyan-400" />
-              <span>Speak</span>
+              <Plus className="w-4 h-4" />
+              <span>+ Add Expense</span>
             </button>
 
             <button
-              onClick={onOpenAI}
-              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 font-bold text-xs transition active:scale-95 shadow-sm"
-              title="Ask AI Accountant"
+              onClick={onOpenManualBill}
+              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold text-xs transition active:scale-95 shadow-sm"
+              title="Generate or Edit Bill"
             >
-              <Bot className="w-4 h-4 text-purple-400" />
-              <span>AI Chat</span>
+              <FileText className="w-4 h-4 text-amber-400" />
+              <span>Create Bill</span>
             </button>
 
             <button
@@ -136,18 +135,28 @@ export default function Dashboard({
 
             <button
               onClick={onOpenRestaurantSplit}
-              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-bold text-xs transition active:scale-95 shadow-sm"
+              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 border border-indigo-500/30 font-bold text-xs transition active:scale-95 shadow-sm"
             >
-              <Utensils className="w-4 h-4 text-amber-400" />
+              <Utensils className="w-4 h-4 text-indigo-400" />
               <span>Dish Split</span>
             </button>
 
             <button
-              onClick={() => onOpenExpenseModal()}
-              className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs shadow-md shadow-cyan-500/25 transition active:scale-95"
+              onClick={onOpenVoice}
+              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/30 font-bold text-xs transition active:scale-95 shadow-sm"
+              title="Speak Expense"
             >
-              <Plus className="w-4 h-4" />
-              <span>+ Add Expense</span>
+              <Mic className="w-4 h-4 text-cyan-400" />
+              <span>Voice</span>
+            </button>
+
+            <button
+              onClick={onOpenAI}
+              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 font-bold text-xs transition active:scale-95 shadow-sm"
+              title="Ask AI Accountant"
+            >
+              <Bot className="w-4 h-4 text-purple-400" />
+              <span>AI Chat</span>
             </button>
           </div>
         </div>
@@ -297,6 +306,52 @@ export default function Dashboard({
             </h3>
             <span className="text-xs text-slate-400">Tracked personal share</span>
           </div>
+        </div>
+      </div>
+
+      {/* 1-Click Fast Action Bar - Zero Headache Quick Create */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900/90 via-slate-800/80 to-slate-900/90 border border-slate-700/60 shadow-xl flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center font-bold">
+            <Zap className="w-4 h-4" />
+          </div>
+          <div>
+            <span className="text-xs font-bold text-white block">1-Click Quick Actions</span>
+            <span className="text-[10px] text-slate-400 block">Instant bill generation, receipt scanning & expense creation</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => onOpenExpenseModal()}
+            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs shadow-md shadow-cyan-500/20 transition active:scale-95"
+          >
+            <Plus className="w-4 h-4" />
+            <span>New Expense</span>
+          </button>
+
+          <button
+            onClick={onOpenManualBill}
+            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 font-bold text-xs transition active:scale-95"
+          >
+            <FileText className="w-4 h-4 text-amber-400" />
+            <span>Generate Bill</span>
+          </button>
+
+          <button
+            onClick={onOpenReceiptScan}
+            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-bold text-xs transition active:scale-95"
+          >
+            <Receipt className="w-4 h-4 text-emerald-400" />
+            <span>Scan Receipt</span>
+          </button>
+
+          <Link
+            to="/maid"
+            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 font-bold text-xs transition active:scale-95"
+          >
+            <span>🧹 Maid Attendance</span>
+          </Link>
         </div>
       </div>
 
