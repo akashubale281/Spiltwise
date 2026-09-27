@@ -22,7 +22,9 @@ import {
   Flame,
   CheckCircle2,
   Zap,
-  Bot
+  Bot,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -37,6 +39,8 @@ export default function Dashboard({
   onOpenManualBill,
   onOpenReceiptScan,
   onOpenSettle,
+  onOpenNewGroup,
+  onOpenJoinGroup,
   onOpenVoice,
   onOpenAI,
   onOpenWhatsApp,
@@ -46,10 +50,35 @@ export default function Dashboard({
   const { formatAmount } = useTheme();
   const [analytics, setAnalytics] = useState(null);
   const [groups, setGroups] = useState([]);
+  const [savedBills, setSavedBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedExpenseId, setExpandedExpenseId] = useState(null);
   const [dismissDetective, setDismissDetective] = useState(false);
   const navigate = useNavigate();
+
+  const loadSavedBills = async () => {
+    let localBills = [];
+    try {
+      localBills = JSON.parse(localStorage.getItem('splitverse_saved_bills') || '[]');
+    } catch (e) {}
+
+    try {
+      const res = await api.getMyBills();
+      if (res.success && Array.isArray(res.bills)) {
+        const localInvSet = new Set(localBills.map((b) => b.invoice_number));
+        const combined = [...localBills];
+        res.bills.forEach((b) => {
+          if (!localInvSet.has(b.invoice_number)) {
+            combined.push(b);
+          }
+        });
+        setSavedBills(combined);
+        return;
+      }
+    } catch (e) {}
+
+    setSavedBills(localBills);
+  };
 
   const loadData = async () => {
     try {
@@ -61,6 +90,7 @@ export default function Dashboard({
 
       if (anaRes.success) setAnalytics(anaRes.analytics);
       if (grpRes.success) setGroups(grpRes.groups || []);
+      await loadSavedBills();
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
     } finally {
@@ -70,6 +100,9 @@ export default function Dashboard({
 
   useEffect(() => {
     loadData();
+    const handleBillSaved = () => loadSavedBills();
+    window.addEventListener('splitverse:bill-saved', handleBillSaved);
+    return () => window.removeEventListener('splitverse:bill-saved', handleBillSaved);
   }, []);
 
   if (loading) {
@@ -131,6 +164,15 @@ export default function Dashboard({
             >
               <Receipt className="w-4 h-4 text-emerald-400" />
               <span>Scan Bill</span>
+            </button>
+
+            <button
+              onClick={onOpenNewGroup}
+              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 font-bold text-xs transition active:scale-95 shadow-sm"
+              title="Create New Group"
+            >
+              <Users className="w-4 h-4 text-cyan-400" />
+              <span>+ New Group</span>
             </button>
 
             <button
@@ -346,6 +388,14 @@ export default function Dashboard({
             <span>Scan Receipt</span>
           </button>
 
+          <button
+            onClick={onOpenNewGroup}
+            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 font-bold text-xs transition active:scale-95"
+          >
+            <Users className="w-4 h-4 text-cyan-400" />
+            <span>+ New Group</span>
+          </button>
+
           <Link
             to="/maid"
             className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 font-bold text-xs transition active:scale-95"
@@ -375,13 +425,22 @@ export default function Dashboard({
               Your Squads & Groups ({groups.length})
             </h3>
           </div>
-          <Link
-            to="/maid"
-            className="text-xs font-bold text-cyan-500 hover:underline flex items-center space-x-1"
-          >
-            <span>Maid & Cook Payroll</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={onOpenNewGroup}
+              className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs shadow-md shadow-cyan-500/20 transition active:scale-95"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>+ Create Group</span>
+            </button>
+            <Link
+              to="/maid"
+              className="text-xs font-bold text-cyan-500 hover:underline flex items-center space-x-1"
+            >
+              <span>Maid Payroll</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -430,7 +489,114 @@ export default function Dashboard({
               </div>
             </Link>
           ))}
+
+          {/* Quick Create Group Card in the Grid */}
+          <button
+            onClick={onOpenNewGroup}
+            className="p-5 rounded-3xl border-2 border-dashed border-cyan-500/30 hover:border-cyan-500 bg-cyan-500/5 hover:bg-cyan-500/10 flex flex-col items-center justify-center space-y-2 transition active:scale-95 text-center min-h-[140px]"
+          >
+            <div className="w-10 h-10 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
+              <Plus className="w-5 h-5" />
+            </div>
+            <span className="text-sm font-bold text-slate-800 dark:text-white">+ Create New Group</span>
+            <span className="text-xs text-slate-400">Flatmates, trips, dinner parties</span>
+          </button>
         </div>
+      </div>
+
+      {/* Saved Bills & Tax Invoices Section (Persistent across refresh) */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <FileText className="w-5 h-5 text-amber-400" />
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+              Saved Bills & Invoices ({savedBills.length})
+            </h3>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/10 text-emerald-400 uppercase tracking-wider">
+              Saved
+            </span>
+          </div>
+          <button
+            onClick={() => onOpenManualBill?.()}
+            className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 transition active:scale-95"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Generate Bill</span>
+          </button>
+        </div>
+
+        {savedBills.length === 0 ? (
+          <div className="p-6 rounded-3xl bg-slate-900/40 border border-slate-800 text-center space-y-2">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto">
+              <FileText className="w-6 h-6" />
+            </div>
+            <p className="text-sm text-slate-200 font-bold">No custom bills generated yet</p>
+            <p className="text-xs text-slate-400 max-w-md mx-auto">
+              Generate or scan bills with line items, GST rate, and UPI QR code. All bills are saved permanently and kept across refreshes!
+            </p>
+            <button
+              onClick={() => onOpenManualBill?.()}
+              className="mt-2 inline-flex items-center space-x-1.5 px-4 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-slate-950 shadow-md transition active:scale-95"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create Your First Bill</span>
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {savedBills.map((b, idx) => (
+              <div
+                key={b.id || b.invoice_number || idx}
+                className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 hover:border-slate-700 space-y-3 transition flex flex-col justify-between"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">
+                      {b.invoice_number || b.invoiceNumber || 'INV-001'}
+                    </span>
+                    <h4 className="font-bold text-sm text-white truncate max-w-[180px]">
+                      {b.vendor_name || b.vendorName || b.merchant || b.title}
+                    </h4>
+                    <span className="text-[11px] text-slate-400 block">
+                      {b.date || b.billDate} • {b.items?.length || 1} line items
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-base font-black font-mono text-emerald-400">
+                      ₹{Number(b.total_amount || b.amount || 0).toFixed(2)}
+                    </span>
+                    <span className="text-[10px] text-slate-400 block">Grand Total</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
+                  <button
+                    onClick={() => onOpenManualBill?.(b)}
+                    className="flex items-center space-x-1 text-xs font-bold text-cyan-400 hover:text-cyan-300"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                    <span>Edit Bill</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const updated = savedBills.filter(
+                        (item) => item.invoice_number !== b.invoice_number
+                      );
+                      setSavedBills(updated);
+                      try {
+                        localStorage.setItem('splitverse_saved_bills', JSON.stringify(updated));
+                      } catch (e) {}
+                    }}
+                    className="p-1 text-slate-500 hover:text-rose-400"
+                    title="Delete Bill"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Recent Expenses List with Story Cards */}

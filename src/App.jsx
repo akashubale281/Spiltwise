@@ -89,6 +89,7 @@ function ProtectedLayout({
         onOpenManualBill={onOpenManualBill}
         onOpenReceiptScan={onOpenReceiptScan}
         onOpenSettle={onOpenSettle}
+        onOpenNewGroup={onOpenNewGroup}
         onOpenCommandPalette={onOpenCommandPalette}
         onOpenVoice={onOpenVoice}
         onOpenAI={onOpenAI}
@@ -256,9 +257,11 @@ function MainApp() {
               <Dashboard
                 onOpenExpenseModal={openExpenseModal}
                 onOpenCalculator={() => setCalcOpen(true)}
-                onOpenManualBill={() => setManualBillOpen(true)}
+                onOpenManualBill={(billData = null) => openManualBill(billData)}
                 onOpenReceiptScan={() => setReceiptScanOpen(true)}
                 onOpenSettle={() => openSettleModal()}
+                onOpenNewGroup={() => setNewGroupOpen(true)}
+                onOpenJoinGroup={() => setJoinGroupOpen(true)}
                 onOpenVoice={() => setVoiceModalOpen(true)}
                 onOpenAI={() => setAiAccountantOpen(true)}
                 onOpenWhatsApp={() => setWhatsAppImportOpen(true)}
@@ -299,7 +302,7 @@ function MainApp() {
           path="/recurring"
           element={
             <ProtectedLayout {...sharedLayoutProps}>
-              <RecurringBillsPage />
+              <RecurringBillsPage onOpenManualBill={(billData) => openManualBill(billData)} />
             </ProtectedLayout>
           }
         />
@@ -475,7 +478,11 @@ function MainApp() {
           setManualBillData(null);
         }}
         onConvertToExpense={(expenseData) => {
-          openExpenseModal('', expenseData);
+          openExpenseModal(expenseData.group_id || '', expenseData);
+        }}
+        onBillSaved={() => {
+          // Trigger a custom event so Dashboard and Bills page re-fetch
+          window.dispatchEvent(new Event('splitverse:bill-saved'));
         }}
       />
 
@@ -483,11 +490,14 @@ function MainApp() {
         isOpen={receiptScanOpen}
         onClose={() => setReceiptScanOpen(false)}
         onApplyToExpense={(expenseData) => {
-          openExpenseModal('', expenseData);
+          openExpenseModal(expenseData.group_id || '', expenseData);
         }}
         onOpenInManualBill={(billData) => {
           setReceiptScanOpen(false);
           openManualBill(billData);
+        }}
+        onBillSaved={() => {
+          window.dispatchEvent(new Event('splitverse:bill-saved'));
         }}
       />
 

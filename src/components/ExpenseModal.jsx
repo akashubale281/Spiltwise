@@ -139,8 +139,11 @@ export default function ExpenseModal({ isOpen, onClose, defaultGroupId, onExpens
       setNotes(editExpenseData.notes || '');
       setReceiptUrl(editExpenseData.receipt_url || '');
       setIsRecurring(!!editExpenseData.is_recurring);
-      setRecurrenceFrequency(editExpenseData.recurrence_frequency || 'monthly');
-      setSelectedGroupId(editExpenseData.group_id);
+      if (editExpenseData.group_id) {
+        setSelectedGroupId(editExpenseData.group_id);
+      } else if (!selectedGroupId && groups.length > 0) {
+        setSelectedGroupId(defaultGroupId || groups[0].id);
+      }
 
       // Populate payers
       if (editExpenseData.payers && editExpenseData.payers.length > 1) {

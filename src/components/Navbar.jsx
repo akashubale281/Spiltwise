@@ -36,6 +36,7 @@ export default function Navbar({
   onOpenManualBill,
   onOpenReceiptScan,
   onOpenSettle,
+  onOpenNewGroup,
   onOpenCommandPalette,
   onOpenVoice,
   onOpenAI,
@@ -125,11 +126,20 @@ export default function Navbar({
             </button>
 
             <button
+              onClick={() => onOpenNewGroup?.()}
+              className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-md shadow-cyan-500/20 transition active:scale-95"
+              title="Create New Group / Squad"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>+ New Group</span>
+            </button>
+
+            <button
               onClick={() => onOpenManualBill?.()}
-              className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 transition active:scale-95"
+              className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 dark:text-amber-400 border border-amber-500/20 transition active:scale-95"
               title="Create / Generate Bill Manually"
             >
-              <FileText className="w-4 h-4 text-indigo-400" />
+              <FileText className="w-4 h-4 text-amber-400" />
               <span>Create Bill</span>
             </button>
 
@@ -330,11 +340,32 @@ export default function Navbar({
         <div className="md:hidden border-t border-slate-200 dark:border-slate-800 p-4 glass-panel space-y-2 animate-fade-in">
           <div className="grid grid-cols-2 gap-2 pb-3 border-b border-slate-200 dark:border-slate-800">
             <button
-              onClick={() => { onOpenCommandPalette(); setMobileNavOpen(false); }}
+              onClick={() => { onOpenNewGroup?.(); setMobileNavOpen(false); }}
+              className="flex items-center space-x-2 p-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-xl text-xs font-bold shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              <span>+ New Group</span>
+            </button>
+            <button
+              onClick={() => { onOpenManualBill?.(); setMobileNavOpen(false); }}
+              className="flex items-center space-x-2 p-2.5 bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20 rounded-xl text-xs font-bold"
+            >
+              <FileText className="w-4 h-4" />
+              <span>Create Bill</span>
+            </button>
+            <button
+              onClick={() => { onOpenReceiptScan?.(); setMobileNavOpen(false); }}
+              className="flex items-center space-x-2 p-2.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-xs font-semibold"
+            >
+              <Receipt className="w-4 h-4" />
+              <span>Scan Bill</span>
+            </button>
+            <button
+              onClick={() => { onOpenSettle(); setMobileNavOpen(false); }}
               className="flex items-center space-x-2 p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-semibold"
             >
-              <Search className="w-4 h-4 text-cyan-400" />
-              <span>Search / K</span>
+              <CreditCard className="w-4 h-4" />
+              <span>Settle Up</span>
             </button>
             <button
               onClick={() => { onOpenVoice(); setMobileNavOpen(false); }}
@@ -349,13 +380,6 @@ export default function Navbar({
             >
               <Bot className="w-4 h-4" />
               <span>AI Chat</span>
-            </button>
-            <button
-              onClick={() => { onOpenSettle(); setMobileNavOpen(false); }}
-              className="flex items-center space-x-2 p-2.5 bg-emerald-600 text-white rounded-xl text-xs font-semibold"
-            >
-              <CreditCard className="w-4 h-4" />
-              <span>Settle Up</span>
             </button>
           </div>
 

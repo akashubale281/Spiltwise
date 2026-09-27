@@ -14,7 +14,9 @@ import {
   Sparkles,
   Building2,
   Receipt,
-  RotateCcw
+  RotateCcw,
+  Save,
+  Users
 } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -75,6 +77,7 @@ export default function ManualBillModal({
   isOpen,
   onClose,
   onConvertToExpense,
+  onBillSaved,
   initialBill
 }) {
   const { user } = useAuth();
@@ -84,6 +87,11 @@ export default function ManualBillModal({
   const [gstin, setGstin] = useState('29AABCS1429B1ZB');
   const [placeOfSupply, setPlaceOfSupply] = useState('29-KARNATAKA');
   const [notes, setNotes] = useState('');
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
+
+  // Groups for 1-click splitting
+  const [groups, setGroups] = useState([]);
+  const [selectedGroupId, setSelectedGroupId] = useState('');
 
   // Item rows with HSN codes
   const [items, setItems] = useState([
@@ -103,9 +111,27 @@ export default function ManualBillModal({
   const [qrData, setQrData] = useState(null);
   const [showQr, setShowQr] = useState(true);
 
+  // Fetch groups on open
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchGroups = async () => {
+      try {
+        const res = await api.getMyGroups();
+        if (res.success && res.groups && res.groups.length > 0) {
+          setGroups(res.groups);
+          if (!selectedGroupId) setSelectedGroupId(res.groups[0].id);
+        }
+      } catch (err) {
+        console.error('Failed to load groups in bill modal:', err);
+      }
+    };
+    fetchGroups();
+  }, [isOpen]);
+
   // If initialBill is provided (e.g. from receipt scanner or edit action), populate form!
   useEffect(() => {
     if (!isOpen) return;
+    setSaveSuccessMsg('');
 
     if (initialBill) {
       if (initialBill.vendorName || initialBill.vendor_name || initialBill.merchant) {
@@ -125,6 +151,9 @@ export default function ManualBillModal({
       }
       if (initialBill.notes) {
         setNotes(initialBill.notes);
+      }
+      if (initialBill.group_id) {
+        setSelectedGroupId(initialBill.group_id);
       }
       if (initialBill.taxRate !== undefined) {
         setTaxRate(Number(initialBill.taxRate));
@@ -236,44 +265,131 @@ export default function ManualBillModal({
     window.print();
   };
 
+  // Build current bill object
+  const buildBillObject = () => {
+    const formattedItems = items.map((it) => ({
+      name: it.name || 'Item',
+      qty: Number(it.qty) || 1,
+      price: Number(it.price) || 0,
+      total: Math.round((Number(it.qty) || 1) * (Number(it.price) || 0) * 100) / 100
+    }));
+
+    return {
+      id: initialBill?.id || `bill-${Date.now()}`,
+      title: `${vendorName} Bill`,
+      invoice_number: invoiceNumber,
+      invoiceNumber: invoiceNumber,
+      vendor_name: vendorName,
+      vendorName: vendorName,
+      date: billDate,
+      billDate: billDate,
+      subtotal,
+      tax_amount: taxAmount,
+      taxRate,
+      tip_amount: Number(tipAmount) || 0,
+      tipAmount: Number(tipAmount) || 0,
+      total_amount: grandTotal,
+      items: formattedItems,
+      notes,
+      upi_id: activeUpi,
+      group_id: selectedGroupId || null,
+      created_at: initialBill?.created_at || new Date().toISOString()
+    };
+  };
+
+  // Save bill to local storage and backend API
+  const saveBillPersistently = async () => {
+    const billObj = buildBillObject();
+
+    // 1. Save to LocalStorage immediately so refresh NEVER loses it
+    try {
+      const existing = JSON.parse(localStorage.getItem('splitverse_saved_bills') || '[]');
+      const filtered = existing.filter(
+        (b) => b.id !== billObj.id && b.invoice_number !== billObj.invoice_number
+      );
+      const updated = [billObj, ...filtered];
+      localStorage.setItem('splitverse_saved_bills', JSON.stringify(updated));
+    } catch (e) {
+      console.error('LocalStorage bill save error:', e);
+    }
+
+    // 2. Also save to Backend API
+    try {
+      await api.createManualBill({
+        title: billObj.title,
+        invoice_number: billObj.invoice_number,
+        vendor_name: billObj.vendor_name,
+        date: billObj.date,
+        subtotal: billObj.subtotal,
+        tax_amount: billObj.tax_amount,
+        tip_amount: billObj.tip_amount,
+        total_amount: billObj.total_amount,
+        items: billObj.items,
+        notes: billObj.notes,
+        upi_id: billObj.upi_id,
+        group_id: billObj.group_id
+      });
+    } catch (e) {
+      console.warn('Backend sync note (persisted locally):', e);
+    }
+
+    // 3. Notify app components
+    window.dispatchEvent(new Event('splitverse:bill-saved'));
+    onBillSaved?.(billObj);
+
+    return billObj;
+  };
+
+  // Action: Save Bill Only
+  const handleSaveOnly = async () => {
+    try {
+      const billObj = await saveBillPersistently();
+      setSaveSuccessMsg(`✓ Bill #${billObj.invoice_number} saved permanently to your library! Kept even after page refresh.`);
+      setTimeout(() => {
+        onClose();
+      }, 1200);
+    } catch (err) {
+      console.error('Error saving bill:', err);
+    }
+  };
+
+  // Action: Save and Convert to Shared Expense
   const handleSaveAndConvert = async () => {
     try {
-      const formattedItems = items.map((it) => ({
-        name: it.name || 'Item',
-        qty: Number(it.qty) || 1,
-        price: Number(it.price) || 0,
-        total: Math.round((Number(it.qty) || 1) * (Number(it.price) || 0) * 100) / 100
-      }));
+      const billObj = await saveBillPersistently();
 
-      // Try creating in backend; if offline/error, proceed smoothly anyway
-      try {
-        await api.createManualBill({
-          title: `${vendorName} Bill`,
-          invoice_number: invoiceNumber,
-          vendor_name: vendorName,
-          date: billDate,
-          subtotal,
-          tax_amount: taxAmount,
-          tip_amount: Number(tipAmount) || 0,
-          total_amount: grandTotal,
-          items: formattedItems,
-          notes,
-          upi_id: activeUpi
-        });
-      } catch (e) {
-        console.warn('Backend bill storage note:', e);
+      // If user selected a group, also log it directly as group expense
+      if (selectedGroupId) {
+        try {
+          await api.createExpense({
+            group_id: selectedGroupId,
+            description: `${vendorName} (Bill #${invoiceNumber})`,
+            amount: grandTotal,
+            date: billDate,
+            category: 'Food',
+            notes: `Generated Bill #${invoiceNumber}: ${items.map((i) => `${i.qty}x ${i.name}`).join(', ')}`,
+            split_type: 'equal'
+          });
+        } catch (expErr) {
+          console.warn('Direct expense log note:', expErr);
+        }
       }
 
       onConvertToExpense?.({
+        group_id: selectedGroupId || '',
         description: `${vendorName} (Bill #${invoiceNumber})`,
         amount: grandTotal,
         date: billDate,
         upi_id: activeUpi,
         notes: `Generated Bill #${invoiceNumber}: ${items.map((i) => `${i.qty}x ${i.name}`).join(', ')}`
       });
-      onClose();
+
+      setSaveSuccessMsg(`✓ Bill saved and queued to split with group!`);
+      setTimeout(() => {
+        onClose();
+      }, 1000);
     } catch (err) {
-      console.error('Error saving bill:', err);
+      console.error('Error saving and splitting bill:', err);
     }
   };
 
@@ -289,11 +405,14 @@ export default function ManualBillModal({
               <FileText className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
-                Manual Bill & Invoice Generator
+              <h3 className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center space-x-2">
+                <span>{initialBill?.id ? 'Edit Bill / Tax Invoice' : 'Manual Bill & Invoice Generator'}</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500/15 text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                  Persistent
+                </span>
               </h3>
               <p className="text-[11px] text-slate-400">
-                Generate, customize & itemize any bill with automatic GST calculation
+                Generate, customize & itemize any bill with automatic GST calculation and permanent storage
               </p>
             </div>
           </div>
@@ -306,7 +425,14 @@ export default function ManualBillModal({
         </div>
 
         {/* Content Body */}
-        <div className="p-5 sm:p-6 overflow-y-auto space-y-5 flex-1 text-slate-800 dark:text-slate-200">
+        <div className="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1 text-slate-800 dark:text-slate-200">
+          {saveSuccessMsg && (
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-300 flex items-center space-x-2 animate-fade-in">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+              <span>{saveSuccessMsg}</span>
+            </div>
+          )}
+
           {/* Quick Preset Templates */}
           <div className="space-y-1.5 print:hidden">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
@@ -380,6 +506,28 @@ export default function ManualBillModal({
               </div>
             </div>
           </div>
+
+          {/* Group Selector for 1-Click Splitting */}
+          {groups.length > 0 && (
+            <div className="p-3 bg-blue-50/60 dark:bg-blue-950/20 rounded-2xl border border-blue-200/80 dark:border-blue-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 print:hidden">
+              <span className="text-xs font-bold text-blue-800 dark:text-blue-300 flex items-center space-x-1.5 uppercase tracking-wider">
+                <Users className="w-3.5 h-3.5 text-blue-600" />
+                <span>Split With Squad / Group (Optional)</span>
+              </span>
+              <select
+                value={selectedGroupId}
+                onChange={(e) => setSelectedGroupId(e.target.value)}
+                className="px-3 py-1.5 bg-white dark:bg-slate-800 border border-blue-300 dark:border-blue-700 rounded-xl text-xs font-medium text-slate-800 dark:text-white"
+              >
+                <option value="">🚫 Do not assign to a group yet</option>
+                {groups.map((grp) => (
+                  <option key={grp.id} value={grp.id}>
+                    👥 {grp.name} ({grp.member_count || grp.members?.length || 2} members)
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* UPI Receiving Account Selector */}
           <div className="p-3.5 bg-emerald-50/70 dark:bg-emerald-950/20 rounded-2xl border border-emerald-200/80 dark:border-emerald-800/60 space-y-2 print:hidden">
@@ -626,24 +774,35 @@ export default function ManualBillModal({
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center justify-between pt-2 print:hidden">
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 print:hidden">
             <button
               type="button"
               onClick={handlePrint}
               className="flex items-center space-x-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300"
             >
               <Printer className="w-4 h-4" />
-              <span>Print / Save PDF</span>
+              <span>Print / PDF</span>
             </button>
 
-            <button
-              type="button"
-              onClick={handleSaveAndConvert}
-              className="flex items-center space-x-2 px-5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 text-white shadow-md shadow-blue-500/25"
-            >
-              <span>Split as Group Expense (₹{grandTotal.toFixed(2)})</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={handleSaveOnly}
+                className="flex items-center space-x-1.5 px-4 py-2 text-xs font-bold rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-100 transition active:scale-95"
+              >
+                <Save className="w-4 h-4 text-emerald-500" />
+                <span>Save Bill</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSaveAndConvert}
+                className="flex items-center space-x-2 px-5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 text-white shadow-md shadow-blue-500/25 transition active:scale-95"
+              >
+                <span>Save & Split with Group (₹{grandTotal.toFixed(2)})</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
