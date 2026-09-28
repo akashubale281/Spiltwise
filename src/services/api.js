@@ -1,6 +1,10 @@
 // Base API path with automatic fallback
 const getApiEndpoints = (endpoint) => {
   const isBrowser = typeof window !== 'undefined';
+  const isCapacitor = isBrowser && (
+    (typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform?.()) ||
+    window.location.protocol === 'capacitor:'
+  );
 
   // If external backend URL is configured (e.g. on Render)
   const envApiUrl = import.meta.env.VITE_API_URL;
@@ -9,8 +13,8 @@ const getApiEndpoints = (endpoint) => {
     return [`${cleanBase}/api${endpoint}`];
   }
 
-  // Automatic Render production backend fallback when hosted on Vercel
-  if (isBrowser && window.location.hostname && window.location.hostname.includes('vercel.app')) {
+  // Automatic Render production backend fallback for Vercel and Capacitor mobile apps
+  if (isCapacitor || (isBrowser && window.location.hostname && window.location.hostname.includes('vercel.app'))) {
     return [`https://spiltwise1-backend.onrender.com/api${endpoint}`];
   }
 
@@ -23,10 +27,13 @@ const getApiEndpoints = (endpoint) => {
   // 2. Direct backend fallback: if running on port 5173 (dev) or another port, direct to 5000
   const directBackend = `http://${hostname}:5000/api${endpoint}`;
 
+  // 3. Live Render production backend fallback
+  const cloudBackend = `https://spiltwise1-backend.onrender.com/api${endpoint}`;
+
   if (currentPort === '5000') {
-    return [primary];
+    return [primary, cloudBackend];
   }
-  return [primary, directBackend];
+  return [primary, directBackend, cloudBackend];
 };
 
 const request = async (endpoint, options = {}) => {

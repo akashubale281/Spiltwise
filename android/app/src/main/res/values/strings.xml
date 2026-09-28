@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SplitVerse</string>
+    <string name="title_activity_main">SplitVerse</string>
+    <string name="package_name">com.splitverse.app</string>
+    <string name="custom_url_scheme">com.splitverse.app</string>
+</resources>

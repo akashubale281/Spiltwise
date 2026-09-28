@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:android": "vite build && cap sync android",
+    "open:android": "cap open android",
     "start": "vite preview",
     "lint": "oxlint",
     "preview": "vite preview"
@@ -14,6 +16,12 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/camera": "^8.2.4",
+    "@capacitor/cli": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/status-bar": "^8.0.3",
     "@tailwindcss/vite": "^4.3.3",
     "canvas-confetti": "^1.9.4",
     "framer-motion": "^13.4.0",
