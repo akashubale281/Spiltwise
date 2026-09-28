@@ -15,9 +15,15 @@ import {
   Check,
   Building2,
   ShieldCheck,
-  X
+  X,
+  Smartphone,
+  Cloud,
+  HardDrive,
+  Download,
+  Upload,
+  RefreshCw
 } from 'lucide-react';
-import { api } from '../services/api';
+import { api, getStorageMode, setStorageMode, localBackup } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -25,6 +31,10 @@ export default function ProfilePage() {
   const { user, updateUser, logout } = useAuth();
   const { isDark, themeMode, setThemeMode, toggleTheme } = useTheme();
   const navigate = useNavigate();
+
+  // Storage Mode State ('local' | 'cloud')
+  const [storageMode, setStorageModeState] = useState(getStorageMode());
+  const [storageMsg, setStorageMsg] = useState('');
 
   // Profile Form
   const [name, setName] = useState(user?.name || '');
@@ -70,6 +80,54 @@ export default function ProfilePage() {
   useEffect(() => {
     fetchUpiAccounts();
   }, []);
+
+  const handleSwitchStorageMode = (newMode) => {
+    setStorageMode(newMode);
+    setStorageModeState(newMode);
+    setStorageMsg(
+      newMode === 'local'
+        ? '📱 Switched to Mobile Storage Only! All data is saved directly on your phone.'
+        : '☁️ Switched to Cloud Sync Mode. Connecting to Render backend.'
+    );
+    setTimeout(() => setStorageMsg(''), 4000);
+  };
+
+  const handleExportBackup = () => {
+    const dataStr = localBackup.exportAllData();
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `splitverse_phone_backup_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setStorageMsg('Backup downloaded to your device!');
+    setTimeout(() => setStorageMsg(''), 3000);
+  };
+
+  const handleImportBackup = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const res = localBackup.importData(event.target.result);
+      if (res.success) {
+        setStorageMsg('Backup successfully restored to phone storage!');
+        setTimeout(() => window.location.reload(), 1200);
+      } else {
+        setErrorMsg(res.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleClearLocalData = () => {
+    if (!window.confirm('Are you sure you want to reset local phone storage?')) return;
+    localBackup.clearAllData();
+    setStorageMsg('Phone storage reset to initial clean state.');
+    setTimeout(() => window.location.reload(), 1200);
+  };
 
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
@@ -219,6 +277,128 @@ export default function ProfilePage() {
           <span>{errorMsg}</span>
         </div>
       )}
+
+      {storageMsg && (
+        <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-2xl text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center space-x-2 animate-fade-in">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>{storageMsg}</span>
+        </div>
+      )}
+
+      {/* STORAGE & DATABASE MODE CARD */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-2xl bg-cyan-50 dark:bg-cyan-950/50 text-cyan-500 flex items-center justify-center font-bold">
+              <HardDrive className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center space-x-2">
+                <span>Data Storage & Offline Settings</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  storageMode === 'local'
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300'
+                    : 'bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300'
+                }`}>
+                  {storageMode === 'local' ? '📱 Mobile Storage (Active)' : '☁️ Cloud Sync (Active)'}
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400">
+                Choose whether all data is stored only on this phone or synced with a cloud server.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Mode Selector Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Mobile Phone Storage */}
+          <div
+            onClick={() => handleSwitchStorageMode('local')}
+            className={`p-5 rounded-2xl border cursor-pointer transition relative ${
+              storageMode === 'local'
+                ? 'bg-cyan-500/10 border-cyan-500 text-cyan-950 dark:text-cyan-100 ring-2 ring-cyan-500/30 shadow-md'
+                : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <div className="flex items-start justify-between">
+              <div className="w-9 h-9 rounded-xl bg-cyan-500/20 text-cyan-500 flex items-center justify-center">
+                <Smartphone className="w-5 h-5" />
+              </div>
+              {storageMode === 'local' && (
+                <span className="flex items-center space-x-1 text-[11px] font-bold text-cyan-600 dark:text-cyan-400 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-full shadow-sm">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Selected</span>
+                </span>
+              )}
+            </div>
+            <h4 className="mt-3 font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+              <span>Mobile Phone Storage Only</span>
+            </h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+              100% offline & local. Groups, expenses, bills, receipts, and maid attendance are stored securely inside your phone's memory. <strong>No backend server or website needed!</strong>
+            </p>
+          </div>
+
+          {/* Cloud Server Sync */}
+          <div
+            onClick={() => handleSwitchStorageMode('cloud')}
+            className={`p-5 rounded-2xl border cursor-pointer transition relative ${
+              storageMode === 'cloud'
+                ? 'bg-blue-500/10 border-blue-500 text-blue-950 dark:text-blue-100 ring-2 ring-blue-500/30 shadow-md'
+                : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <div className="flex items-start justify-between">
+              <div className="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-500 flex items-center justify-center">
+                <Cloud className="w-5 h-5" />
+              </div>
+              {storageMode === 'cloud' && (
+                <span className="flex items-center space-x-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-900 px-2 py-0.5 rounded-full shadow-sm">
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Selected</span>
+                </span>
+              )}
+            </div>
+            <h4 className="mt-3 font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+              <span>Cloud Server Sync</span>
+            </h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+              Syncs with Render backend (<code>https://spiltwise1-backend.onrender.com</code>). Allows multiple friends on different phones to share groups and live balance updates.
+            </p>
+          </div>
+        </div>
+
+        {/* Data Tools: Backup, Restore & Reset */}
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportBackup}
+              className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition"
+              title="Download backup file of all your data"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Backup to File (.json)</span>
+            </button>
+
+            <label className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition cursor-pointer">
+              <Upload className="w-3.5 h-3.5" />
+              <span>Restore Backup</span>
+              <input type="file" accept=".json" onChange={handleImportBackup} className="hidden" />
+            </label>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleClearLocalData}
+            className="flex items-center space-x-1 text-xs font-semibold text-rose-500 hover:text-rose-600 transition"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Reset Local Data</span>
+          </button>
+        </div>
+      </div>
 
       {/* 1. THEME SWITCHER CARD (Light vs Dark vs System) */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">

@@ -9,21 +9,18 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem('splitwise_token');
-      if (token) {
-        try {
-          const res = await api.getMe();
-          if (res.success && res.user) {
-            setUser(res.user);
-          } else {
-            localStorage.removeItem('splitwise_token');
-          }
-        } catch (err) {
-          console.error('Session restore failed:', err);
+      try {
+        const res = await api.getMe();
+        if (res.success && res.user) {
+          setUser(res.user);
+        } else {
           localStorage.removeItem('splitwise_token');
         }
+      } catch (err) {
+        console.error('Session restore failed:', err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     checkAuth();

@@ -25,11 +25,15 @@ import {
   Home,
   Layers,
   Zap,
-  KeyRound
+  KeyRound,
+  Smartphone,
+  Cloud,
+  HardDrive
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNotifications } from '../context/NotificationContext';
+import { getStorageMode } from '../services/api';
 
 export default function Navbar({
   onOpenCalculator,
@@ -49,8 +53,8 @@ export default function Navbar({
   const { isDark, toggleTheme, privacyMode, togglePrivacyMode } = useTheme();
   const { notifications, unreadCount, isDrawerOpen, toggleDrawer, markAsRead, markAllAsRead } = useNotifications();
   const [profileOpen, setProfileOpen] = useState(false);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const navigate = useNavigate();
+  const isLocalStorage = getStorageMode() === 'local';
 
   const handleLogout = () => {
     logout();
@@ -170,8 +174,22 @@ export default function Navbar({
           </div>
         )}
 
-        {/* Right Tools (Privacy Mask, Theme, Notification, Profile) */}
+        {/* Right Tools (Storage Mode, Privacy Mask, Theme, Notification, Profile) */}
         <div className="flex items-center space-x-2">
+          {/* Mobile Storage Mode Pill */}
+          <button
+            onClick={() => navigate('/profile')}
+            className={`hidden md:flex items-center space-x-1.5 px-2.5 py-1 rounded-xl text-[11px] font-bold transition active:scale-95 ${
+              isLocalStorage
+                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20'
+                : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 hover:bg-blue-500/20'
+            }`}
+            title="Storage Settings: Click to manage Mobile Phone vs Cloud Storage"
+          >
+            {isLocalStorage ? <Smartphone className="w-3.5 h-3.5" /> : <Cloud className="w-3.5 h-3.5" />}
+            <span>{isLocalStorage ? 'Phone Storage' : 'Cloud Sync'}</span>
+          </button>
+
           {/* Privacy Hidden Balances Toggle */}
           <button
             onClick={togglePrivacyMode}
@@ -310,6 +328,20 @@ export default function Navbar({
                     >
                       <User className="w-4 h-4 text-cyan-400" />
                       <span>Account Profile</span>
+                    </Link>
+
+                    <Link
+                      to="/profile"
+                      onClick={() => setProfileOpen(false)}
+                      className="flex items-center justify-between px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <HardDrive className="w-4 h-4 text-emerald-400" />
+                        <span>Data Storage</span>
+                      </div>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500">
+                        {isLocalStorage ? 'Phone' : 'Cloud'}
+                      </span>
                     </Link>
 
                     <button
